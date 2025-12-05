@@ -39,7 +39,10 @@ export const useChatbot = (): UseChatbotReturn => {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      // Use browser's window object for runtime env vars in Docusaurus
+      const apiUrl = (typeof window !== 'undefined' && (window as any).ENV?.API_URL) ||
+                     process.env.NEXT_PUBLIC_API_URL ||
+                     'http://localhost:8000';
 
       const response = await fetch(`${apiUrl}/api/chat`, {
         method: 'POST',
