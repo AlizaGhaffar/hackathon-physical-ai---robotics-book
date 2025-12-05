@@ -1,114 +1,101 @@
+"""
+FastAPI Main Application
+Entry point for the RAG Chatbot API.
+"""
+import os
+import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
+
+from src.services.database import db_service
+from src.services.retrieval import retrieval_service
+from src.services.generation import generation_service
+from src.models.dtos import HealthResponse
+
+load_dotenv()
+
+# Application startup time
+START_TIME = time.time()
+API_VERSION = "1.0.0"
 
 app = FastAPI(
-    title="Physical AI Textbook API",
-    description="Backend for Chapter 1: ROS 2 Fundamentals",
-    version="1.0.0"
+    title="RAG Chatbot API",
+    description="AI-powered chatbot for Physical AI Textbook",
+    version=API_VERSION
 )
 
-# CORS middleware
+# CORS Configuration
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "https://*.github.io", "https://*.vercel.app"],
+    allow_origins=[frontend_url, "http://localhost:3000"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
 )
 
+# Import routers
+from src.api import chat, conversations
+
+app.include_router(chat.router, prefix="/api", tags=["Chat"])
+app.include_router(conversations.router, prefix="/api", tags=["Conversations"])
+
 @app.get("/")
-def read_root():
-    return {"message": "Physical AI Textbook API - Chapter 1"}
+async def root():
+    """Root endpoint."""
+    return {
+        "message": "RAG Chatbot API",
+        "version": API_VERSION,
+        "docs": "/docs"
+    }
 
-@app.get("/health")
-def health_check():
-    return {"status": "healthy"}
-
-# Import routes
-from .routes import auth_router, translate_router
-
-# Include routers
-app.include_router(auth_router)
-app.include_router(translate_router)
-
-# Chatbot endpoint (Simple - No RAG)
-from pydantic import BaseModel
-from typing import Optional, List, Dict
-from .ai_client import chat_completion
-from fastapi import Depends
-
-class ChatRequest(BaseModel):
-    message: str
-    chapter: str = "chapter_1"
-    use_rag: bool = True
-
-class ChatResponse(BaseModel):
-    response: str
-    success: bool = True
-    sources: Optional[List[Dict]] = None
-    num_sources: Optional[int] = 0
-
-@app.post("/api/chatbot/ask", response_model=ChatResponse)
-async def chatbot_ask(request: ChatRequest):
+@app.get("/health", response_model=HealthResponse)
+async def health_check():
     """
-    Simple chatbot for answering questions about ROS 2 and Physical AI
-    Powered by OpenAI GPT-3.5
+    Health check endpoint.
+    Verifies connectivity to all dependencies.
     """
-    try:
-        # Detailed system context for Physical AI textbook
-        system_context = """
-        You are an expert AI assistant for a Physical AI and Humanoid Robotics textbook - Chapter 1: ROS 2 Fundamentals.
+    # Check dependencies
+    db_healthy = await db_service.health_check()
+    qdrant_healthy = retrieval_service.health_check()
+    openai_healthy = generation_service.health_check()
+    
+    dependencies = {
+        "database": "connected" if db_healthy else "disconnected",
+        "qdrant": "connected" if qdrant_healthy else "disconnected",
+        "openai": "connected" if openai_healthy else "disconnected"
+    }
+    
+    all_healthy = all([db_healthy, qdrant_healthy, openai_healthy])
+    status = "healthy" if all_healthy else "unhealthy"
+    
+    uptime = int(time.time() - START_TIME)
+    
+    response = HealthResponse(
+        status=status,
+        dependencies=dependencies,
+        version=API_VERSION,
+        uptime_seconds=uptime
+    )
+    
+    status_code = 200 if all_healthy else 503
+    
+    return JSONResponse(
+        status_code=status_code,
+        content=response.dict()
+    )
 
-        About the Book:
-        - Teaches Physical AI: AI systems that understand and interact with the physical world
-        - Focuses on humanoid robots that can operate in human environments
-        - Core technology: ROS 2 (Robot Operating System 2)
+@app.on_event("startup")
+async def startup_event():
+    """Initialize connections on startup."""
+    await db_service.connect()
+    print(f"[OK] RAG Chatbot API started (version {API_VERSION})")
 
-        ROS 2 Core Concepts:
-        - Nodes: Independent processes that perform computation
-        - Topics: Named buses for message passing (pub/sub pattern)
-        - Services: Request/reply interactions between nodes
-        - Actions: Long-running tasks with feedback
-        - Parameters: Configuration values for nodes
-
-        Key Topics in Chapter 1:
-        1. What is ROS 2? Middleware for robot control and communication
-        2. Why ROS 2? Industry standard, used by Boston Dynamics, NASA, Waymo
-        3. Nodes: Building blocks of ROS 2 applications
-        4. Topics: Asynchronous message passing for sensor data
-        5. Services: Synchronous request-reply for commands
-        6. URDF: Unified Robot Description Format for humanoid models
-
-        Your Role:
-        - Answer questions concisely and clearly
-        - Provide Python code examples when relevant
-        - Explain robotics concepts in simple terms
-        - Focus on practical implementation
-        - Help students understand Physical AI fundamentals
-
-        Be helpful, encouraging, and focus on real-world robotics applications!
-        """
-
-        response_text = chat_completion(request.message, system_context)
-
-        return ChatResponse(
-            response=response_text,
-            success=True,
-            sources=[],
-            num_sources=0
-        )
-    except Exception as e:
-        return ChatResponse(
-            response=f"Error: {str(e)}. Please check if OpenAI API key is configured.",
-            success=False,
-            sources=[],
-            num_sources=0
-        )
-
-@app.post("/api/chatbot/personalized", response_model=ChatResponse)
-async def chatbot_personalized(request: ChatRequest):
-    """
-    Personalized chatbot (simplified - same as regular for now)
-    """
-    # For now, just use the regular chatbot
-    return await chatbot_ask(request)
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up connections on shutdown."""
+    await db_service.disconnect()
+    print("[OK] RAG Chatbot API shut down")
