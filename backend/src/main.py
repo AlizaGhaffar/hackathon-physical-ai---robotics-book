@@ -28,10 +28,21 @@ app = FastAPI(
 
 # CORS Configuration
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+# Allow Vercel domains and localhost
+allowed_origins = [
+    frontend_url,
+    "http://localhost:3000",
+    "https://*.vercel.app",  # Vercel preview deployments
+]
+
+# In production, allow all Vercel domains
+if os.getenv("RAILWAY_ENVIRONMENT") == "production":
+    allowed_origins.append("https://*.vercel.app")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url, "http://localhost:3000"],
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Allow all Vercel domains
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
