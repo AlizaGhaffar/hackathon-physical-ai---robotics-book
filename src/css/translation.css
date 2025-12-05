@@ -1,0 +1,118 @@
+/**
+ * Translation-specific styles
+ * Handles RTL (right-to-left) layout for Urdu
+ */
+
+/* RTL support for Urdu */
+html[dir='rtl'] {
+  direction: rtl;
+}
+
+html[dir='rtl'] body {
+  text-align: right;
+}
+
+/* Adjust sidebar for RTL */
+html[dir='rtl'] .theme-doc-sidebar-container {
+  order: 2;
+}
+
+html[dir='rtl'] .main-wrapper {
+  flex-direction: row-reverse;
+}
+
+/* Navbar adjustments for RTL */
+html[dir='rtl'] .navbar__items {
+  flex-direction: row-reverse;
+}
+
+html[dir='rtl'] .navbar__item {
+  direction: rtl;
+}
+
+/* Code blocks should remain LTR even in RTL mode */
+html[dir='rtl'] pre,
+html[dir='rtl'] code {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Keep technical terms and code inline with proper direction */
+html[dir='rtl'] code.inline-code {
+  direction: ltr;
+  display: inline-block;
+  unicode-bidi: embed;
+}
+
+/* Table of contents adjustments */
+html[dir='rtl'] .table-of-contents {
+  text-align: right;
+}
+
+html[dir='rtl'] .table-of-contents ul {
+  padding-right: 0;
+  padding-left: 0;
+  margin-right: 0;
+}
+
+/* Breadcrumbs */
+html[dir='rtl'] .breadcrumbs {
+  flex-direction: row-reverse;
+}
+
+/* Pagination */
+html[dir='rtl'] .pagination-nav {
+  flex-direction: row-reverse;
+}
+
+/* Search bar */
+html[dir='rtl'] .navbar__search-input {
+  text-align: right;
+}
+
+/* Dropdown menus */
+html[dir='rtl'] .dropdown {
+  text-align: right;
+}
+
+/* Admonitions (tips, warnings, etc.) */
+html[dir='rtl'] .admonition {
+  text-align: right;
+}
+
+/* List items */
+html[dir='rtl'] ul,
+html[dir='rtl'] ol {
+  padding-right: 1.5rem;
+  padding-left: 0;
+}
+
+/* Font optimization for Urdu text */
+html[lang='ur'] {
+  font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Nafees Nastaleeq', 'Alvi Nastaleeq', 'Pak Nastaleeq', system-ui, -apple-system, sans-serif;
+}
+
+/* Smooth transition when changing languages */
+html {
+  transition: direction 0.3s ease;
+}
+
+/* Ensure images and media remain properly aligned */
+html[dir='rtl'] img,
+html[dir='rtl'] video {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Fix for flex containers in RTL */
+html[dir='rtl'] .row {
+  flex-direction: row-reverse;
+}
+
+/* Preserve LTR for numbers and technical content */
+html[dir='rtl'] .technical-content,
+html[dir='rtl'] .keep-ltr {
+  direction: ltr;
+  display: inline-block;
+  unicode-bidi: embed;
+}
