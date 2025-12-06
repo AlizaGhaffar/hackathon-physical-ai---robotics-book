@@ -8,15 +8,13 @@ const config: Config = {
   favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
-  url: 'https://AlizaGhaffar.github.io',
+  url: 'https://your-site.vercel.app',
   // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/hackathon-physical-ai---robotics-book/',
+  baseUrl: '/',
 
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'AlizaGhaffar', // Usually your GitHub org/user name.
-  projectName: 'hackathon-physical-ai---robotics-book', // Usually your repo name.
+  // GitHub pages deployment config (not used for Vercel)
+  organizationName: 'AlizaGhaffar',
+  projectName: 'hackathon-physical-ai---robotics-book',
 
   onBrokenLinks: 'throw',
 
