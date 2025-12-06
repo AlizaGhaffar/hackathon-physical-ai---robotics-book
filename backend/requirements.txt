@@ -27,3 +27,4 @@ aiohttp>=3.9.0
 
 # Utilities
 pydantic-settings>=2.1.0
+tenacity>=8.2.0
