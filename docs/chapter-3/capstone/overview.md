@@ -182,4 +182,4 @@ Your capstone is complete when:
 
 Ready to build? Start with **Phase 1: Voice Input Module**!
 
-Continue to: [Phase 1 Guide →](phase1-voice.md)
+_Phase guides coming soon._
