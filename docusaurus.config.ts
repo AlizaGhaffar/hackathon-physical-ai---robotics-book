@@ -11,13 +11,12 @@ const config: Config = {
   url: 'https://AlizaGhaffar.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  // NOTE: Change to '/hackathon-using-speckit-plus/' before deploying to GitHub Pages
-  baseUrl: '/',
+  baseUrl: '/hackathon-physical-ai---robotics-book/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'AlizaGhaffar', // Usually your GitHub org/user name.
-  projectName: 'hackathon-using-speckit-plus', // Usually your repo name.
+  projectName: 'hackathon-physical-ai---robotics-book', // Usually your repo name.
 
   onBrokenLinks: 'throw',
 
@@ -79,7 +78,7 @@ const config: Config = {
           label: 'Chapters',
         },
         {
-          href: 'https://github.com/AlizaGhaffar/hackathon-using-speckit-plus',
+          href: 'https://github.com/AlizaGhaffar/hackathon-physical-ai---robotics-book',
           label: 'GitHub',
           position: 'right',
         },
@@ -102,7 +101,7 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/AlizaGhaffar/hackathon-using-speckit-plus',
+              href: 'https://github.com/AlizaGhaffar/hackathon-physical-ai---robotics-book',
             },
           ],
         },
