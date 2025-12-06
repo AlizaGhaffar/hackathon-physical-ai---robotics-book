@@ -1,3 +1,12 @@
+---
+title: Robotics Book Backend API
+emoji: 🤖
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # Physical AI Textbook - Backend API
 
 FastAPI backend with authentication and RAG (Retrieval-Augmented Generation) for the Physical AI & Humanoid Robotics textbook.
