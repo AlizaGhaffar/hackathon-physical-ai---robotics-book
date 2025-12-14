@@ -18,18 +18,23 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
   },
   "dependencies": {
+    "@chatscope/chat-ui-kit-react": "^2.1.1",
+    "@chatscope/chat-ui-kit-styles": "^1.4.0",
     "@docusaurus/core": "^3.0.0",
     "@docusaurus/preset-classic": "^3.0.0",
     "@mdx-js/react": "^3.0.0",
     "@monaco-editor/react": "^4.6.0",
     "@react-three/drei": "^9.88.0",
     "@react-three/fiber": "^8.15.0",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "chart.js": "^4.4.0",
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.1.0",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^16.1.0",
     "three": "^0.158.0"
   },
   "devDependencies": {

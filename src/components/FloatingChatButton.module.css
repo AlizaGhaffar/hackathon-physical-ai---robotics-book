@@ -1,0 +1,143 @@
+/* Floating Button */
+.floatingButton {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 9998;
+  color: white;
+}
+
+.floatingButton:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.floatingButton:active {
+  transform: scale(0.95);
+}
+
+/* Chat Icon */
+.chatIcon {
+  width: 28px;
+  height: 28px;
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  right: 70px;
+  background-color: var(--ifm-color-emphasis-900);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left: 6px solid var(--ifm-color-emphasis-900);
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+}
+
+.floatingButton:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Dark Mode Support */
+[data-theme='dark'] .floatingButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+[data-theme='dark'] .tooltip {
+  background-color: var(--ifm-color-emphasis-100);
+  color: var(--ifm-color-emphasis-900);
+}
+
+[data-theme='dark'] .tooltip::after {
+  border-left-color: var(--ifm-color-emphasis-100);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .floatingButton {
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 56px;
+    height: 56px;
+  }
+
+  .chatIcon {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Hide tooltip on mobile (shows on hover which doesn't work well on touch) */
+  .tooltip {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .floatingButton {
+    bottom: 1rem;
+    right: 1rem;
+    width: 50px;
+    height: 50px;
+  }
+
+  .chatIcon {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* Accessibility */
+.floatingButton:focus {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+.floatingButton:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Animation on load */
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  }
+}
+
+.floatingButton {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.floatingButton:hover {
+  animation: none;
+}

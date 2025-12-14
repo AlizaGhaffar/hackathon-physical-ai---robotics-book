@@ -1,0 +1,121 @@
+.chatContainer {
+  width: 100%;
+  height: 500px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 2rem 0;
+}
+
+.chatbotContainer :global(.cs-main-container) {
+  height: 100%;
+}
+
+.chatbotContainer :global(.cs-message__content) {
+  max-width: 80%;
+}
+
+.chatbotContainer :global(.cs-message--incoming .cs-message__content) {
+  background-color: #f0f0f0;
+  color: #000;
+}
+
+.chatbotContainer :global(.cs-message--outgoing .cs-message__content) {
+  background-color: #4a90e2;
+  color: #fff;
+}
+
+.chatbotContainer :global(.cs-message-input__content-editor) {
+  font-family: inherit;
+}
+
+.chatbotContainer :global(.cs-button--send) {
+  background-color: #4a90e2;
+}
+
+.chatbotContainer :global(.cs-button--send:hover) {
+  background-color: #357abd;
+}
+
+/* Dark mode support */
+[data-theme='dark'] .chatbotContainer {
+  border-color: #444;
+}
+
+[data-theme='dark'] .chatbotContainer :global(.cs-message--incoming .cs-message__content) {
+  background-color: #2d2d2d;
+  color: #fff;
+}
+
+[data-theme='dark'] .chatbotContainer :global(.cs-message-input) {
+  background-color: #1a1a1a;
+  border-color: #444;
+}
+
+[data-theme='dark'] .chatbotContainer :global(.cs-message-input__content-editor) {
+  color: #fff;
+}
+
+/* Error message styling */
+.errorMessage {
+  background-color: var(--ifm-color-danger-lightest) !important;
+  border-left: 3px solid var(--ifm-color-danger);
+}
+
+/* Sources section styling */
+.sources {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background-color: var(--ifm-color-emphasis-100);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.sources summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.sources ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sources li {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background-color: white;
+  border-radius: 4px;
+}
+
+.sourceContent {
+  margin-top: 0.5rem;
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* Dark mode support for sources */
+[data-theme='dark'] .sources {
+  background-color: var(--ifm-color-emphasis-200);
+}
+
+[data-theme='dark'] .sources li {
+  background-color: var(--ifm-color-emphasis-100);
+}
+
+/* Responsive mobile support (FR-014) */
+@media (max-width: 768px) {
+  .chatContainer {
+    height: 400px;
+  }
+}
+
+@media (max-width: 320px) {
+  .chatContainer {
+    height: 350px;
+  }
+}

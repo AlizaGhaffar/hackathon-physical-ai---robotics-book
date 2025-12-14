@@ -1,26 +1,30 @@
 <!--
 Sync Impact Report
 ------------------
-Version Change: 1.1.0 → 1.2.0
+Version Change: 1.2.0 → 1.3.0
 Modified Principles: None (existing principles retained)
 Added Sections:
-  - VIII. Climax Chapter Excellence (Chapter 3 Focus)
-  - IX. AI-Robotics Convergence
-  - X. Capstone Project Readiness
-  - XI. Demo Showcase Optimization
-  - XII. Future-Proof Architecture
-  - Chapter 3 Specific Standards
-  - Chapter 3 Content Requirements
+  - XIII. RAG Backend Architecture
+  - XIV. Embedding Pipeline Excellence
+  - XV. Vector Storage Strategy
+  - XVI. Context Retrieval Precision
+  - XVII. Response Generation Quality
+  - XVIII. Database Management
+  - XIX. Selected Text Query Support
+  - RAG Backend Technology Stack
+  - RAG API Standards
 Removed Sections: None
 Templates Requiring Updates:
-  - ✅ .specify/templates/plan-template.md (validated - applies to all chapters)
-  - ✅ .specify/templates/spec-template.md (validated - applies to all chapters)
-  - ✅ .specify/templates/tasks-template.md (validated - applies to all chapters)
+  - ✅ .specify/templates/plan-template.md (validated - RAG backend aligns with web app structure)
+  - ✅ .specify/templates/spec-template.md (validated - RAG features can be specified as user stories)
+  - ✅ .specify/templates/tasks-template.md (validated - RAG tasks follow phase-based structure)
 Follow-up TODOs:
-  - Create Chapter 3 specification with AI integration focus
-  - Design capstone project that integrates Chapters 1, 2, and 3
-  - Plan 90-second demo script highlighting Chapter 3 climax features
-  - Implement advanced RAG features for Chapter 3 (multi-modal, code generation)
+  - Create RAG backend specification with FastAPI architecture
+  - Design embedding pipeline for book content processing
+  - Set up Qdrant Cloud Free Tier vector database
+  - Configure Neon Serverless Postgres for metadata storage
+  - Implement selected text querying feature
+  - Integrate with existing frontend chatbot UI
 -->
 
 # Physical AI Textbook - Multi-Chapter Constitution with Chapter 3 Climax
@@ -189,6 +193,115 @@ Follow-up TODOs:
 - All AI integrations MUST have fallback mechanisms (graceful degradation if API fails)
 - Architecture MUST support future chapters adding new AI capabilities without modifying Chapter 3
 
+## RAG Chatbot Backend Principles
+
+### XIII. RAG Backend Architecture
+**PRINCIPLE**: The RAG chatbot backend MUST be built with FastAPI, following clean architecture patterns with clear separation between embedding generation, vector storage, retrieval, and response generation layers.
+
+**RATIONALE**: A well-architected RAG backend ensures maintainability, testability, and scalability. Separation of concerns allows independent optimization of each pipeline stage and easier debugging when issues arise.
+
+**NON-NEGOTIABLE RULES**:
+- Backend MUST use FastAPI framework (per hackathon requirements)
+- Architecture MUST separate: (1) Embedding Service, (2) Vector Storage Service, (3) Retrieval Service, (4) Response Generation Service
+- All services MUST have defined interfaces (dependency injection pattern)
+- Configuration MUST be externalized (environment variables, config files)
+- API endpoints MUST follow REST principles (proper HTTP verbs, status codes)
+- All endpoints MUST have request/response validation using Pydantic models
+- Backend MUST be stateless (no session state stored in backend process)
+- Error handling MUST be centralized (consistent error response format)
+
+### XIV. Embedding Pipeline Excellence
+**PRINCIPLE**: Text-to-embedding conversion MUST be robust, efficient, and produce high-quality vector representations that enable accurate semantic search.
+
+**RATIONALE**: Embedding quality directly determines RAG chatbot accuracy. Poor embeddings lead to irrelevant context retrieval and incorrect answers. Efficient processing ensures scalability as book content grows.
+
+**NON-NEGOTIABLE RULES**:
+- Embeddings MUST use OpenAI's text-embedding-3-small or text-embedding-3-large models
+- Text chunking MUST preserve semantic coherence (avoid splitting mid-sentence or mid-concept)
+- Chunk size MUST be optimized for context window (recommended: 500-1000 tokens with 100-200 token overlap)
+- Metadata MUST be preserved with each chunk (chapter, section, page, heading hierarchy)
+- Batch processing MUST be implemented for bulk embedding generation (process multiple chunks per API call)
+- Embedding generation MUST be idempotent (re-running on same content produces same results)
+- Failed embedding requests MUST be retried with exponential backoff (max 3 retries)
+- Embedding service MUST log statistics (chunks processed, tokens consumed, API latency)
+
+### XV. Vector Storage Strategy
+**PRINCIPLE**: Vector embeddings MUST be stored in Qdrant Cloud Free Tier with proper indexing, namespacing, and metadata to enable fast, accurate retrieval.
+
+**RATIONALE**: Qdrant provides efficient vector similarity search at scale. Proper storage design ensures sub-second query response times and accurate context retrieval even as content volume grows.
+
+**NON-NEGOTIABLE RULES**:
+- Vector database MUST use Qdrant Cloud Free Tier (per hackathon requirements)
+- Collections MUST be namespaced by chapter (e.g., `chapter_1_vectors`, `chapter_2_vectors`)
+- Each vector entry MUST include payload metadata: `{chapter_id, section_id, chunk_id, text, heading, page}`
+- Index type MUST be optimized for search speed (HNSW recommended for <1M vectors)
+- Qdrant client MUST implement connection pooling and timeout limits (≤5s per query)
+- Vector upsert operations MUST be batched (100-500 vectors per batch)
+- Duplicate detection MUST be implemented (prevent re-indexing same content)
+- Collections MUST support filtering by metadata (enable chapter-specific searches)
+
+### XVI. Context Retrieval Precision
+**PRINCIPLE**: Retrieval MUST find the most semantically relevant book sections for a given query, with configurable precision-recall tradeoffs and support for hybrid search strategies.
+
+**RATIONALE**: Context quality determines answer accuracy. Retrieving too few chunks risks missing critical information; too many chunks add noise and cost. Hybrid search (dense + keyword) improves robustness.
+
+**NON-NEGOTIABLE RULES**:
+- Default retrieval MUST return top-K most similar chunks (K=3-5 recommended)
+- Similarity threshold MUST be configurable (default: 0.7 cosine similarity)
+- Query embedding MUST use same model as document embeddings (consistency)
+- Retrieval MUST support chapter-scoped queries (filter by chapter_id in metadata)
+- Re-ranking MUST be applied to initial results (use cross-encoder or MMR for diversity)
+- Retrieved chunks MUST be sorted by relevance score (highest first)
+- Context length MUST not exceed OpenAI model limit (subtract prompt overhead from max tokens)
+- Fallback retrieval MUST trigger if no results meet similarity threshold (return top-K regardless)
+
+### XVII. Response Generation Quality
+**PRINCIPLE**: Final responses MUST be generated by sending retrieved context to OpenAI's GPT models with carefully engineered prompts that ensure accurate, grounded, and helpful answers.
+
+**RATIONALE**: The response generation stage synthesizes retrieved context into user-facing answers. Prompt quality, context formatting, and model parameters critically affect answer accuracy and user satisfaction.
+
+**NON-NEGOTIABLE RULES**:
+- Response generation MUST use OpenAI ChatCompletion API (GPT-4 or GPT-3.5-turbo)
+- System prompt MUST instruct model to answer ONLY using provided context (prevent hallucination)
+- System prompt MUST specify: "If context doesn't contain answer, say 'I couldn't find that information in the book.'"
+- Retrieved chunks MUST be formatted clearly in user message (e.g., "Context:\n\n[chunk1]\n\n[chunk2]")
+- Temperature MUST be low for factual queries (0.0-0.3 recommended)
+- Max tokens MUST be set appropriately (150-300 for concise answers)
+- Streaming responses MUST be supported (enable progressive display in frontend)
+- Citations MUST be included (reference chapter/section of source chunks)
+- API errors MUST be handled gracefully (return friendly error message, log technical details)
+
+### XVIII. Database Management
+**PRINCIPLE**: Neon Serverless Postgres MUST be used for storing chat history, user sessions, usage analytics, and metadata that requires relational queries and ACID guarantees.
+
+**RATIONALE**: While Qdrant handles vector storage, Postgres provides structured storage for relational data. Neon's serverless model eliminates operational overhead while providing PostgreSQL compatibility.
+
+**NON-NEGOTIABLE RULES**:
+- Database MUST use Neon Serverless Postgres (per hackathon requirements)
+- Schema MUST include tables: `users`, `chat_sessions`, `chat_messages`, `usage_logs`, `feedback`
+- All timestamps MUST use UTC timezone (avoid timezone confusion)
+- User identifiers MUST be indexed (fast lookups by user_id)
+- Chat history MUST link to user sessions (enable conversation continuity)
+- Database credentials MUST be stored in environment variables (never hardcoded)
+- Connection pooling MUST be configured (max connections appropriate for free tier limits)
+- Database migrations MUST be versioned and reversible (use Alembic or similar)
+- Sensitive user data MUST be encrypted at rest (use Neon's built-in encryption)
+
+### XIX. Selected Text Query Support
+**PRINCIPLE**: The RAG chatbot MUST support answering questions specifically about user-selected text, enabling focused queries on specific book sections without full-chapter retrieval.
+
+**RATIONALE**: Users may want to ask questions about specific paragraphs or code snippets they're currently reading. This feature improves precision and reduces irrelevant context in responses.
+
+**NON-NEGOTIABLE RULES**:
+- API MUST accept optional `selected_text` parameter in query request
+- When `selected_text` is provided, it MUST be embedded and used for retrieval (supplement or replace general query)
+- Selected text MUST be treated as high-priority context (ranked above general retrieval results)
+- If selected text is short (<100 chars), expand context by retrieving surrounding chunks
+- Selected text source MUST be validated (ensure it exists in vector database to prevent injection)
+- Query response MUST indicate if answer is based on selected text vs. general retrieval
+- Frontend MUST send selected text position metadata (chapter, section) for context enrichment
+- Selected text feature MUST work seamlessly with chapter-scoped queries
+
 ## Technical Standards
 
 ### Technology Stack (NON-NEGOTIABLE)
@@ -220,6 +333,92 @@ Follow-up TODOs:
 **Deployment**:
 - GitHub Pages or Vercel (required per hackathon spec)
 - Public GitHub repository (required for submission)
+
+### RAG Backend Technology Stack (NON-NEGOTIABLE)
+
+**Backend Framework**:
+- FastAPI 0.104+ (required per hackathon spec)
+- Python 3.11+ (async/await support, modern type hints)
+- Uvicorn (ASGI server for production)
+
+**AI/ML Services**:
+- OpenAI API (Agents/ChatKit SDKs per hackathon requirements)
+- OpenAI GPT-4 or GPT-3.5-turbo (response generation)
+- OpenAI text-embedding-3-small or text-embedding-3-large (embeddings)
+
+**Vector Database**:
+- Qdrant Cloud Free Tier (required per hackathon spec)
+- qdrant-client Python SDK
+
+**Relational Database**:
+- Neon Serverless Postgres (required per hackathon spec)
+- asyncpg (async PostgreSQL adapter)
+- SQLAlchemy 2.0+ (ORM with async support)
+- Alembic (database migrations)
+
+**Backend Dependencies**:
+- Pydantic 2.0+ (request/response validation)
+- python-dotenv (environment variable management)
+- httpx (async HTTP client for external APIs)
+- tenacity (retry logic with exponential backoff)
+- loguru (structured logging)
+
+**Testing & Development**:
+- pytest (unit/integration tests)
+- pytest-asyncio (async test support)
+- httpx (API testing)
+- faker (test data generation)
+
+### RAG API Standards
+
+**Required Endpoints**:
+
+1. **POST /api/query** - Main RAG query endpoint
+   - Request: `{query: str, chapter_id?: int, selected_text?: str, user_id?: str}`
+   - Response: `{answer: str, sources: [{chapter, section, page}], confidence: float}`
+   - Timeout: 10s max
+   - Streaming: Support SSE (Server-Sent Events) for progressive responses
+
+2. **POST /api/embed** - Generate embeddings for content (admin/setup)
+   - Request: `{texts: List[str], chapter_id: int, metadata: Dict}`
+   - Response: `{status: str, chunks_processed: int, vectors_stored: int}`
+   - Authentication: Admin API key required
+
+3. **GET /api/health** - Health check endpoint
+   - Response: `{status: str, qdrant: bool, neon: bool, openai: bool}`
+   - Timeout: 2s max
+
+4. **POST /api/feedback** - User feedback on responses
+   - Request: `{query_id: str, rating: int, feedback?: str}`
+   - Response: `{status: str}`
+
+**API Design Principles**:
+- All endpoints MUST return proper HTTP status codes (200, 400, 422, 500, 503)
+- Error responses MUST follow format: `{error: str, detail?: str, request_id: str}`
+- All requests MUST include request_id for tracing
+- Rate limiting MUST be implemented (100 req/min per user)
+- CORS MUST be configured for frontend domain(s)
+- API versioning MUST use URL prefix (e.g., `/api/v1/query`)
+- Request validation errors MUST return 422 with field-level details
+- All timestamps MUST be ISO 8601 format (UTC)
+
+**Performance Requirements for RAG Backend**:
+- Query endpoint response time: <3s (p95)
+- Embedding generation: <5s per 1000 tokens
+- Qdrant vector search: <500ms
+- Database queries: <100ms
+- Concurrent requests: Support 50 concurrent users
+- Memory usage: <512MB per worker process
+
+**Security Requirements for RAG Backend**:
+- OpenAI API keys MUST be stored in environment variables
+- Qdrant API keys MUST be stored in environment variables
+- Neon database credentials MUST be stored in environment variables
+- Input sanitization MUST prevent injection attacks
+- Rate limiting MUST prevent abuse
+- Admin endpoints MUST require authentication
+- HTTPS MUST be enforced in production
+- Secrets MUST NEVER be logged or exposed in error messages
 
 ### Chapter 3 Specific Standards
 **AI Integration Quality**:
@@ -411,4 +610,4 @@ If answers are No/No/Yes/No, the complexity is REJECTED.
 ### Runtime Development Guidance
 For agent-specific development guidance beyond this constitution, refer to `CLAUDE.md` for Claude Code-specific workflows and best practices.
 
-**Version**: 1.2.0 | **Ratified**: 2025-12-03 | **Last Amended**: 2025-12-03
+**Version**: 1.3.0 | **Ratified**: 2025-12-03 | **Last Amended**: 2025-12-08

@@ -1,0 +1,212 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Diagnostic Report",
+  "description": "JSON schema for verification diagnostic report output",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "pipeline_status",
+    "collection_stats",
+    "validation_results",
+    "search_test_results",
+    "summary",
+    "recommendations"
+  ],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when verification was run"
+    },
+    "pipeline_status": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "WARNING"],
+      "description": "Overall pipeline health status"
+    },
+    "collection_stats": {
+      "type": "object",
+      "required": ["name", "vector_count", "dimensions", "distance_metric"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Qdrant collection name"
+        },
+        "vector_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of vectors in collection"
+        },
+        "dimensions": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Vector dimensionality (expected 1024)"
+        },
+        "distance_metric": {
+          "type": "string",
+          "description": "Similarity metric used (expected Cosine)"
+        }
+      }
+    },
+    "validation_results": {
+      "type": "array",
+      "description": "Results from all validation checks",
+      "items": {
+        "type": "object",
+        "required": ["check_name", "priority", "status", "details"],
+        "properties": {
+          "check_name": {
+            "type": "string",
+            "description": "Human-readable name of the validation check"
+          },
+          "check_type": {
+            "type": "string",
+            "enum": [
+              "dimensionality",
+              "duplicates",
+              "metadata",
+              "collection",
+              "url_validation",
+              "chunk_length"
+            ],
+            "description": "Category of validation check"
+          },
+          "priority": {
+            "type": "integer",
+            "enum": [1, 2, 3],
+            "description": "Priority level: 1=blocker, 2=quality, 3=best-practice"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["PASS", "FAIL", "WARNING"],
+            "description": "Check result status"
+          },
+          "details": {
+            "type": "string",
+            "description": "Human-readable explanation of result"
+          },
+          "affected_vectors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUIDs of vectors that failed this check (if applicable)"
+          }
+        }
+      }
+    },
+    "search_test_results": {
+      "type": "array",
+      "description": "Results from semantic search tests",
+      "items": {
+        "type": "object",
+        "required": ["query", "top_results", "status"],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Natural language query text"
+          },
+          "query_embedding_sample": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 5,
+            "description": "First 5 dimensions of query embedding (for debugging)"
+          },
+          "top_results": {
+            "type": "array",
+            "description": "Top K search results",
+            "items": {
+              "type": "object",
+              "required": ["score", "chapter", "title"],
+              "properties": {
+                "score": {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "description": "Cosine similarity score"
+                },
+                "chapter": {
+                  "type": "string",
+                  "description": "Source chapter"
+                },
+                "section": {
+                  "type": "string",
+                  "description": "Source section (if available)"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Page or heading title"
+                },
+                "text_preview": {
+                  "type": "string",
+                  "maxLength": 200,
+                  "description": "First 200 chars of matched text"
+                },
+                "source_url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Original documentation URL"
+                }
+              }
+            }
+          },
+          "retrieval_time_ms": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Time taken for search in milliseconds"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["PASS", "FAIL", "WARNING"],
+            "description": "Whether search returned relevant results"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total_checks", "passed", "failed", "warnings"],
+      "properties": {
+        "total_checks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of validation checks run"
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of checks that passed"
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of checks that failed"
+        },
+        "warnings": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of checks with warnings"
+        },
+        "total_vectors_checked": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total vectors examined during validation"
+        },
+        "total_search_queries": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of semantic search queries executed"
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "description": "Actionable next steps based on validation results",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

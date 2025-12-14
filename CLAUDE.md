@@ -1,4 +1,4 @@
-# Claude Code Rules
+﻿# Claude Code Rules
 
 This file is generated during init for the selected agent.
 
@@ -208,3 +208,144 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+## Active Technologies (Auto-Updated 2025-12-11)
+
+### RAG Chatbot Backend (Feature: 001-rag-chatbot-backend)
+
+**Language**: Python 3.11+
+**Framework**: FastAPI 0.104+
+**Vector Database**: Qdrant Cloud (qdrant-client 1.7+)
+**Relational Database**: Neon Serverless Postgres (SQLAlchemy 2.0+, asyncpg 0.29+)
+**AI/ML**: OpenAI API (openai 1.3+) - text-embedding-3-small, GPT-4-turbo
+**Validation**: Pydantic 2.5+
+**Testing**: pytest 7.4+, pytest-asyncio 0.21+, httpx 0.25+
+
+**Project Structure**:
+```
+backend/
+├── src/
+│   ├── main.py                  # FastAPI application
+│   ├── config.py                # Environment configuration
+│   ├── models/                  # Pydantic + SQLAlchemy models
+│   ├── services/                # Business logic (embedding, vector, query, chat, feedback)
+│   ├── api/                     # Route handlers (query, embed, health, feedback)
+│   ├── middleware/              # Rate limiting, CORS, error handling
+│   └── utils/                   # Chunking, logging, validators
+├── tests/
+│   ├── unit/                    # Isolated tests with mocks
+│   ├── integration/             # Real service tests
+│   └── contract/                # OpenAPI validation tests
+├── requirements.txt
+├── Dockerfile
+└── README.md
+```
+
+**Key Commands**:
+```bash
+# Setup
+python3.11 -m venv backend/venv
+source backend/venv/bin/activate
+pip install -r backend/requirements.txt
+
+# Database
+alembic revision --autogenerate -m "Migration name"
+alembic upgrade head
+
+# Development
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+
+# Testing
+pytest tests/unit -v
+pytest tests/integration -v
+pytest tests/ --cov=src --cov-report=html
+```
+
+**Code Style (Python)**:
+- Use async/await for all I/O operations (OpenAI, Qdrant, Postgres)
+- Type hints required for all function signatures
+- Pydantic models for all request/response validation
+- SQLAlchemy 2.0 async ORM for database operations
+- Environment-based configuration (no hardcoded secrets)
+- Request ID tracing in all API responses
+
+**Recent Feature**: RAG Chatbot Backend (2025-12-10)
+- Added FastAPI backend for retrieval-augmented generation
+- Integrated OpenAI embeddings (text-embedding-3-small) and GPT-4-turbo
+- Configured Qdrant Cloud vector database with chapter/section metadata filtering
+- Set up Neon Serverless Postgres for chat history and feedback
+- Implemented async RAG pipeline: embed query → vector search → GPT generation
+- Support for selected-text queries and chapter-scoped retrieval
+
+### Embedding Pipeline (Feature: 002-embedding-pipeline)
+
+**Language**: Python 3.11+
+**Package Manager**: UV (modern Python package manager)
+**Embedding Service**: Cohere API (embed-english-v3.0, 1024 dimensions)
+**Vector Database**: Qdrant Cloud Free Tier (qdrant-client)
+**HTML Parsing**: BeautifulSoup4
+**HTTP Client**: httpx (async)
+**Environment**: python-dotenv
+**Testing**: pytest, pytest-asyncio
+
+**Project Structure**:
+```
+backend/embedding-pipeline/
+├── main.py              # Single-file pipeline implementation
+├── pyproject.toml       # UV project configuration
+├── .env.example         # Environment variable template
+├── README.md            # Setup and usage instructions
+└── tests/
+    ├── test_crawler.py      # URL crawling tests
+    ├── test_extraction.py   # Text extraction tests
+    ├── test_chunking.py     # Chunking logic tests
+    ├── test_embedding.py    # Cohere integration tests
+    └── test_qdrant.py       # Qdrant operations tests
+```
+
+**Key Commands**:
+```bash
+# Setup
+cd backend/embedding-pipeline
+uv init
+uv add cohere qdrant-client beautifulsoup4 httpx python-dotenv
+
+# Configure
+cp .env.example .env
+# Edit .env with COHERE_API_KEY, QDRANT_URL, QDRANT_API_KEY
+
+# Run pipeline
+uv run python main.py
+
+# Testing
+uv run pytest tests/ -v
+```
+
+**Pipeline Functions**:
+- `get_all_urls()`: Crawl Docusaurus site for documentation pages
+- `extract_text_from_url()`: Fetch HTML and extract clean text with metadata
+- `chunk_text()`: Split text into 500-token chunks with 100-token overlap
+- `embed()`: Generate embeddings using Cohere embed-english-v3.0
+- `create_collection()`: Initialize Qdrant collection "rag_embedding"
+- `save_chunk_to_qdrant()`: Batch upsert embeddings with metadata
+- `main()`: Orchestrate full pipeline execution
+
+**Code Style (Python)**:
+- Single-file implementation (main.py)
+- Async/await for I/O operations (httpx, Cohere, Qdrant)
+- Type hints for all function signatures
+- Dataclasses for entity models (DocumentPage, TextChunk, ChunkMetadata)
+- Environment-based configuration (no hardcoded secrets)
+- Exponential backoff retry logic for API calls
+
+**Recent Feature**: Embedding Pipeline Setup (2025-12-11)
+- Single-file batch script for crawling Docusaurus site
+- Cohere embed-english-v3.0 for embedding generation (1024 dimensions)
+- Qdrant Cloud collection "rag_embedding" for vector storage
+- BeautifulSoup4 for HTML parsing and text extraction
+- Metadata extraction: chapter, section, page title, source URL
+- Idempotent design: URL-based vector IDs for update-in-place
+- Target: https://physical-ai-robotics-book.vercel.app/
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

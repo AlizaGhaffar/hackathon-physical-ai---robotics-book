@@ -1,0 +1,40 @@
+---
+id: chatbot
+sidebar_position: 100
+sidebar_label: AI Chatbot
+title: AI Chatbot
+description: Ask questions about the book content
+---
+
+import ChatBot from '@site/src/components/ChatBot';
+
+# AI Chatbot 🤖
+
+Ask me anything about the Physical AI and Robotics textbook! I can help you understand concepts, explain code examples, and answer questions about ROS 2, Gazebo, and more.
+
+## Interactive Chat
+
+<ChatBot />
+
+---
+
+## How to use
+
+1. **Type your question** in the input box at the bottom
+2. **Press Enter or click Send** to submit your question
+3. **Wait for the AI response** - it will search the book content and generate an answer
+4. **View sources** - each answer includes references to where the information came from
+
+## Tips for better answers
+
+- Be specific about what you want to know
+- Reference specific topics like "ROS 2 nodes", "publishers and subscribers", etc.
+- Ask follow-up questions to dive deeper
+- Select text from the book and ask about it for focused answers
+
+## Need help?
+
+If the chatbot isn't working:
+- Make sure the backend server is running on `http://localhost:8000`
+- Check that the book content has been indexed in the vector database
+- Try refreshing the page
