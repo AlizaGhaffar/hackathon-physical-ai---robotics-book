@@ -110,6 +110,11 @@ export async function sendQuery(
  * @returns Session ID (UUID)
  */
 export function getOrCreateSessionId(): string {
+  // Only run in browser environment
+  if (typeof window === 'undefined') {
+    return 'ssr-session-id';
+  }
+
   const STORAGE_KEY = 'chat_session_id';
   let sessionId = sessionStorage.getItem(STORAGE_KEY);
 

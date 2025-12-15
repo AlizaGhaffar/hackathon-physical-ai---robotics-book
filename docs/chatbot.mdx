@@ -6,7 +6,7 @@ title: AI Chatbot
 description: Ask questions about the book content
 ---
 
-import ChatBot from '@site/src/components/ChatBot';
+import BrowserOnly from '@docusaurus/BrowserOnly';
 
 # AI Chatbot 🤖
 
@@ -14,7 +14,12 @@ Ask me anything about the Physical AI and Robotics textbook! I can help you unde
 
 ## Interactive Chat
 
-<ChatBot />
+<BrowserOnly fallback={<div>Loading chatbot...</div>}>
+  {() => {
+    const ChatBot = require('@site/src/components/ChatBot').default;
+    return <ChatBot />;
+  }}
+</BrowserOnly>
 
 ---
 
