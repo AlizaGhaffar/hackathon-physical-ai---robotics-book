@@ -143,13 +143,13 @@ class VectorService:
                 )
 
             # Search
-            results = client.query_points(
+            results = client.search(
                 collection_name=self.collection_name,
-                query=query_vector,
+                query_vector=query_vector,
                 query_filter=query_filter,
                 limit=top_k,
                 score_threshold=score_threshold,
-            ).points
+            )
 
             # Format results
             chunks = []

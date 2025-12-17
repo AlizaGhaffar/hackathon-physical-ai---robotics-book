@@ -12,7 +12,6 @@ class CohereEmbeddingService:
         self.client = cohere.Client(settings.cohere_api_key)
         self.model = "embed-english-v3.0"
         self.input_type = "search_query"  # For queries
-        self.embedding_types = ["float"]
 
     async def embed_text(self, text: str) -> List[float]:
         """
@@ -29,9 +28,8 @@ class CohereEmbeddingService:
                 texts=[text],
                 model=self.model,
                 input_type=self.input_type,
-                embedding_types=self.embedding_types,
             )
-            return response.embeddings.float[0]
+            return response.embeddings[0]
         except Exception as e:
             logger.error(f"Failed to embed text with Cohere: {str(e)}")
             raise
@@ -56,11 +54,10 @@ class CohereEmbeddingService:
                 texts=texts,
                 model=self.model,
                 input_type=self.input_type,
-                embedding_types=self.embedding_types,
             )
 
             logger.info(f"Successfully embedded {len(texts)} texts")
-            return response.embeddings.float
+            return response.embeddings
 
         except Exception as e:
             logger.error(f"Batch embedding failed: {str(e)}")

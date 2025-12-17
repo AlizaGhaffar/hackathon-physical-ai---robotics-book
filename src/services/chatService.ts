@@ -5,8 +5,9 @@
 
 import type { QueryRequest, QueryResponse } from '../types/chat';
 
-// Get API URL from environment variable (Vercel) or fallback to Hugging Face deployment
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://alizaghaffar-chatbot-deploy.hf.space';
+// API Base URL for backend - Always use Hugging Face Spaces
+// Backend is deployed at: https://alizaghaffar-chatbot-deploy.hf.space
+const API_BASE_URL = 'https://alizaghaffar-chatbot-deploy.hf.space';
 
 
 /**
@@ -119,7 +120,17 @@ export function getOrCreateSessionId(): string {
   let sessionId = sessionStorage.getItem(STORAGE_KEY);
 
   if (!sessionId) {
-    sessionId = crypto.randomUUID();
+    // Use crypto.randomUUID() if available, otherwise fallback
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      sessionId = crypto.randomUUID();
+    } else {
+      // Fallback UUID generation
+      sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
     sessionStorage.setItem(STORAGE_KEY, sessionId);
   }
 
