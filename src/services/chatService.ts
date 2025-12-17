@@ -5,8 +5,8 @@
 
 import type { QueryRequest, QueryResponse } from '../types/chat';
 
-// Get API URL from Docusaurus config or environment variable
-const API_BASE_URL = 'http://localhost:8000';
+// Get API URL from environment variable (Vercel) or fallback to Hugging Face deployment
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://alizaghaffar-chatbot-deploy.hf.space';
 
 
 /**

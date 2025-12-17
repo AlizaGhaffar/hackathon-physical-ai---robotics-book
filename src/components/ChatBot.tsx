@@ -36,14 +36,17 @@ export default function ChatBot() {
   const [sessionId] = useState(() => getOrCreateSessionId());
   const [chapterId] = useState(() => extractChapterId(location.pathname));
 
-  // Ref for auto-scroll
+  // Ref for auto-scroll with smooth behavior
   const messageListRef = useRef<any>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive with smooth animation
   useEffect(() => {
     if (messageListRef.current) {
-      messageListRef.current.scrollToBottom();
+      messageListRef.current.scrollToBottom('smooth');
     }
+    // Fallback smooth scroll
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages]);
 
   /**
@@ -113,18 +116,23 @@ export default function ChatBot() {
           <MessageList
             ref={messageListRef}
             typingIndicator={isLoading && <TypingIndicator content="AI is thinking..." />}
+            className={styles.messageList}
           >
-            {messages.map((msg) => (
-              <ChatMessage
+            {messages.map((msg, index) => (
+              <div
                 key={msg.id}
-                model={{
-                  message: msg.content,
-                  sender: msg.role === 'user' ? 'You' : 'AI Assistant',
-                  direction: msg.role === 'user' ? 'outgoing' : 'incoming',
-                  position: 'single',
-                }}
-                className={msg.isError ? styles.errorMessage : ''}
+                className={styles.messageWrapper}
+                style={{ animationDelay: `${index * 0.05}s` }}
               >
+                <ChatMessage
+                  model={{
+                    message: msg.content,
+                    sender: msg.role === 'user' ? 'You' : 'AI Assistant',
+                    direction: msg.role === 'user' ? 'outgoing' : 'incoming',
+                    position: 'single',
+                  }}
+                  className={msg.isError ? styles.errorMessage : ''}
+                >
                 <ChatMessage.CustomContent>
                   <div>
                     {/* FR-012: Format AI responses with markdown */}
@@ -170,7 +178,9 @@ export default function ChatBot() {
                   </div>
                 </ChatMessage.CustomContent>
               </ChatMessage>
+              </div>
             ))}
+            <div ref={messagesEndRef} />
           </MessageList>
           <MessageInput
             placeholder={isLoading ? 'Please wait...' : 'Ask a question about this chapter...'}

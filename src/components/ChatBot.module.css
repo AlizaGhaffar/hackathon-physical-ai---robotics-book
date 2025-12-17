@@ -1,121 +1,145 @@
+/* ==================================================
+   CLEAN & SAFE ChatKit Styling
+   Scroll + Input Visibility FIXED
+   ================================================== */
+
 .chatContainer {
   width: 100%;
   height: 500px;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
   margin: 2rem 0;
+  border-radius: 20px;
+
+  /* 🔥 VERY IMPORTANT */
+  overflow: visible;
+
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
 }
 
-.chatbotContainer :global(.cs-main-container) {
-  height: 100%;
+/* ===== ChatKit height chain (SCROLL FIX CORE) ===== */
+
+.chatContainer :global(.cs-main-container) {
+  height: 100% !important;
+  display: flex;
+  border-radius: 20px;
+  overflow: hidden; /* safe */
+  background: rgba(255, 255, 255, 0.95);
 }
 
-.chatbotContainer :global(.cs-message__content) {
+.chatContainer :global(.cs-chat-container) {
+  height: 100% !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== MESSAGE LIST (SCROLL ENABLED) ===== */
+
+.chatContainer :global(.cs-message-list) {
+  flex: 1 1 0%;
+  min-height: 0; /* 🔥 CRITICAL */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 1.25rem;
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar */
+.chatContainer :global(.cs-message-list::-webkit-scrollbar) {
+  width: 10px;
+}
+
+.chatContainer :global(.cs-message-list::-webkit-scrollbar-track) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.chatContainer :global(.cs-message-list::-webkit-scrollbar-thumb) {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 10px;
+}
+
+/* ===== MESSAGE BUBBLES ===== */
+
+.chatContainer :global(.cs-message__content) {
   max-width: 80%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-.chatbotContainer :global(.cs-message--incoming .cs-message__content) {
-  background-color: #f0f0f0;
-  color: #000;
+.chatContainer :global(.cs-message--incoming .cs-message__content) {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #ffffff;
+  border-bottom-left-radius: 4px;
 }
 
-.chatbotContainer :global(.cs-message--outgoing .cs-message__content) {
-  background-color: #4a90e2;
-  color: #fff;
+.chatContainer :global(.cs-message--outgoing .cs-message__content) {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
 }
 
-.chatbotContainer :global(.cs-message-input__content-editor) {
-  font-family: inherit;
+/* ===== INPUT BAR (LIGHT BLUE REMOVED) ===== */
+
+.chatContainer :global(.cs-message-input) {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
+  background: #020617;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.chatbotContainer :global(.cs-button--send) {
-  background-color: #4a90e2;
+/* Input wrapper */
+.chatContainer :global(.cs-message-input__content-editor-wrapper) {
+  background: #0f172a !important;
+  border-radius: 20px;
+  border: 1px solid #334155;
 }
 
-.chatbotContainer :global(.cs-button--send:hover) {
-  background-color: #357abd;
+/* Text typing */
+.chatContainer :global(.cs-message-input__content-editor) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-size: 14px;
+  padding: 10px 14px;
 }
 
-/* Dark mode support */
-[data-theme='dark'] .chatbotContainer {
-  border-color: #444;
+/* Placeholder */
+.chatContainer :global(.cs-message-input__content-editor::placeholder) {
+  color: #94a3b8 !important;
 }
 
-[data-theme='dark'] .chatbotContainer :global(.cs-message--incoming .cs-message__content) {
-  background-color: #2d2d2d;
-  color: #fff;
+/* Fix contentEditable weirdness */
+.chatContainer :global(.cs-message-input__content-editor *),
+.chatContainer :global(.cs-message-input__content-editor-container) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
-[data-theme='dark'] .chatbotContainer :global(.cs-message-input) {
-  background-color: #1a1a1a;
-  border-color: #444;
+/* ===== SEND BUTTON ===== */
+
+.chatContainer :global(.cs-button--send) {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border: none;
 }
 
-[data-theme='dark'] .chatbotContainer :global(.cs-message-input__content-editor) {
-  color: #fff;
+.chatContainer :global(.cs-button--send svg) {
+  color: #ffffff;
 }
 
-/* Error message styling */
-.errorMessage {
-  background-color: var(--ifm-color-danger-lightest) !important;
-  border-left: 3px solid var(--ifm-color-danger);
+/* ===== DARK MODE SUPPORT ===== */
+
+[data-theme='dark'] .chatContainer {
+  background: linear-gradient(135deg, #0f172a, #020617);
 }
 
-/* Sources section styling */
-.sources {
-  margin-top: 1rem;
-  padding: 0.5rem;
-  background-color: var(--ifm-color-emphasis-100);
-  border-radius: 4px;
-  font-size: 0.9rem;
+[data-theme='dark'] .chatContainer :global(.cs-main-container) {
+  background: rgba(2, 6, 23, 0.95);
 }
 
-.sources summary {
-  cursor: pointer;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.sources ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.sources li {
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  background-color: white;
-  border-radius: 4px;
-}
-
-.sourceContent {
-  margin-top: 0.5rem;
-  color: var(--ifm-color-emphasis-700);
-  font-size: 0.85rem;
-  font-style: italic;
-}
-
-/* Dark mode support for sources */
-[data-theme='dark'] .sources {
-  background-color: var(--ifm-color-emphasis-200);
-}
-
-[data-theme='dark'] .sources li {
-  background-color: var(--ifm-color-emphasis-100);
-}
-
-/* Responsive mobile support (FR-014) */
-@media (max-width: 768px) {
-  .chatContainer {
-    height: 400px;
-  }
-}
-
-@media (max-width: 320px) {
-  .chatContainer {
-    height: 350px;
-  }
+[data-theme='dark'] .chatContainer :global(.cs-message-input) {
+  background: #020617;
 }
