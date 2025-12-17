@@ -87,3 +87,6 @@ Thumbs.db
 *.temp
 *.bak
 *.swp
+
+# Deployment folders (separate git repos)
+chatbot-deploy/

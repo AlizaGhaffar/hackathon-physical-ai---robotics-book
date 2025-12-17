@@ -1,0 +1,29 @@
+# Dockerfile for Hugging Face Spaces deployment
+# Hugging Face requires port 7860
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for cache efficiency
+COPY requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY src/ ./src/
+COPY migrations/ ./migrations/
+COPY alembic.ini .
+
+# Expose port 7860 (required by Hugging Face Spaces)
+EXPOSE 7860
+
+# Run the application on port 7860
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "7860"]
