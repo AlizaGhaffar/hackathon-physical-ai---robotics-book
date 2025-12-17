@@ -1,0 +1,381 @@
+openapi: 3.1.0
+info:
+  title: Agent-Based RAG Backend API
+  version: 1.0.0
+  description: |
+    Retrieval-Augmented Generation (RAG) API for answering questions about Physical AI textbook content.
+    Uses OpenAI Agents SDK with Qdrant vector database for grounded responses.
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.physical-ai-book.com
+    description: Production server
+
+paths:
+  /ask:
+    post:
+      summary: Ask a question about book content
+      description: |
+        Submit a question to the RAG agent. The agent retrieves relevant book chunks from Qdrant
+        and generates a grounded answer using OpenAI GPT-4. Supports multi-turn conversations
+        via session_id and chapter-scoped queries via filters.
+      operationId: askQuestion
+      tags:
+        - RAG Query
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AskRequest'
+            examples:
+              simple_question:
+                summary: Simple single-turn question
+                value:
+                  question: "What are the three main components of a robot?"
+              chapter_scoped:
+                summary: Chapter-scoped query
+                value:
+                  question: "What is sensor fusion?"
+                  chapter_filter: 3
+              multi_turn:
+                summary: Multi-turn conversation
+                value:
+                  question: "How does it work in autonomous vehicles?"
+                  session_id: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successful response with answer and citations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AskResponse'
+              examples:
+                grounded_answer:
+                  summary: Answer with citations
+                  value:
+                    answer: "The three main components of a robot are: (1) sensors for perception, (2) actuators for movement, and (3) a control system for decision-making."
+                    sources:
+                      - chapter_id: 1
+                        section: "Introduction to Robotics"
+                        page: 12
+                        chunk_id: "ch1-intro-001"
+                        source_url: "https://book.example.com/chapter1/intro"
+                        relevance_score: 0.92
+                    confidence: "high"
+                    retrieval_count: 5
+                    processing_time_ms: 2340
+                deflection:
+                  summary: No relevant content found
+                  value:
+                    answer: "I couldn't find information about that in the book."
+                    sources: []
+                    confidence: "low"
+                    retrieval_count: 0
+                    processing_time_ms: 1500
+        '400':
+          description: Bad request (malformed JSON)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error (invalid field values)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              example:
+                error: "Validation failed"
+                detail:
+                  - field: "question"
+                    message: "Field required"
+                  - field: "chapter_filter"
+                    message: "Input should be less than or equal to 8"
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: External service unavailable (Qdrant, OpenAI, Cohere)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Service temporarily unavailable"
+                detail: "Vector database connection failed"
+
+  /health:
+    get:
+      summary: Health check endpoint
+      description: |
+        Returns system health status including connectivity to all external services
+        (Qdrant, OpenAI, Cohere). Used for monitoring and load balancer health checks.
+      operationId: healthCheck
+      tags:
+        - System
+      responses:
+        '200':
+          description: Health check successful (may indicate degraded state)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  summary: All services operational
+                  value:
+                    status: "healthy"
+                    qdrant_available: true
+                    openai_available: true
+                    cohere_available: true
+                    timestamp: "2025-12-13T10:30:00Z"
+                    uptime_seconds: 3600
+                degraded:
+                  summary: Some services unavailable
+                  value:
+                    status: "degraded"
+                    qdrant_available: true
+                    openai_available: false
+                    cohere_available: true
+                    timestamp: "2025-12-13T10:30:00Z"
+                    uptime_seconds: 3600
+        '500':
+          description: Health check failed (critical error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    AskRequest:
+      type: object
+      required:
+        - question
+      properties:
+        question:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: User's question about book content
+          example: "What is reinforcement learning?"
+        chapter_filter:
+          type: integer
+          minimum: 1
+          maximum: 8
+          nullable: true
+          description: Optional chapter ID to scope retrieval (1-8)
+          example: 3
+        section_filter:
+          type: string
+          pattern: '^[a-zA-Z0-9\\s-]+$'
+          maxLength: 100
+          nullable: true
+          description: Optional section name to scope retrieval
+          example: "Sensor Fusion"
+        session_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Session identifier for multi-turn conversations (UUID v4)
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        selected_text:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: User-highlighted text for context-specific queries
+          example: "The robot uses a Kalman filter to fuse sensor data."
+
+    AskResponse:
+      type: object
+      required:
+        - answer
+        - sources
+        - confidence
+        - retrieval_count
+        - processing_time_ms
+      properties:
+        answer:
+          type: string
+          minLength: 1
+          description: Generated response text based on retrieved book content
+          example: "Reinforcement learning is a machine learning paradigm where an agent learns to make decisions by interacting with an environment and receiving rewards or penalties."
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Citation'
+          description: List of source citations (empty if no relevant content found)
+        confidence:
+          type: string
+          enum: [high, medium, low]
+          description: Confidence level in the answer
+          example: "high"
+        session_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Session identifier (echoed from request if provided)
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        retrieval_count:
+          type: integer
+          minimum: 0
+          description: Number of book chunks retrieved from Qdrant
+          example: 5
+        processing_time_ms:
+          type: integer
+          minimum: 0
+          description: Total processing time in milliseconds
+          example: 2340
+
+    Citation:
+      type: object
+      required:
+        - chapter_id
+        - section
+        - chunk_id
+        - source_url
+      properties:
+        chapter_id:
+          type: integer
+          minimum: 1
+          maximum: 8
+          description: Chapter number
+          example: 3
+        section:
+          type: string
+          description: Section title
+          example: "Sensor Fusion"
+        page:
+          type: integer
+          nullable: true
+          description: Page number (if available)
+          example: 42
+        chunk_id:
+          type: string
+          description: Unique chunk identifier
+          example: "ch3-sensor-fusion-001"
+        source_url:
+          type: string
+          format: uri
+          description: URL to original book content
+          example: "https://book.example.com/chapter3/sensor-fusion"
+        relevance_score:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          nullable: true
+          description: Vector similarity score (0.0-1.0)
+          example: 0.92
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - qdrant_available
+        - openai_available
+        - cohere_available
+        - timestamp
+        - uptime_seconds
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall system health status
+          example: "healthy"
+        qdrant_available:
+          type: boolean
+          description: Qdrant Cloud vector database connectivity
+          example: true
+        openai_available:
+          type: boolean
+          description: OpenAI API availability
+          example: true
+        cohere_available:
+          type: boolean
+          description: Cohere API availability
+          example: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp (ISO 8601 UTC)
+          example: "2025-12-13T10:30:00Z"
+        uptime_seconds:
+          type: integer
+          minimum: 0
+          description: Server uptime since startup
+          example: 3600
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Service temporarily unavailable"
+        detail:
+          type: string
+          nullable: true
+          description: Additional error details (not shown to end users)
+          example: "Qdrant connection timeout after 5s"
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - error
+        - detail
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: "Validation failed"
+        detail:
+          type: array
+          items:
+            type: object
+            required:
+              - field
+              - message
+            properties:
+              field:
+                type: string
+                description: Field name that failed validation
+                example: "question"
+              message:
+                type: string
+                description: Validation error message
+                example: "Field required"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication (optional for MVP, required in production)
+
+security:
+  - {}  # No security required for MVP
+  # Uncomment for production:
+  # - ApiKeyAuth: []
+
+tags:
+  - name: RAG Query
+    description: Question answering endpoints
+  - name: System
+    description: System monitoring and health checks

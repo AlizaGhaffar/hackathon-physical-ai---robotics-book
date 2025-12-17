@@ -1,0 +1,694 @@
+openapi: 3.0.3
+info:
+  title: RAG Chatbot Backend API
+  description: |
+    Retrieval-Augmented Generation (RAG) chatbot backend for Physical AI Textbook.
+
+    **Features:**
+    - Question-answering on book content with citations
+    - Selected text queries for focused answers
+    - Chapter-scoped retrieval
+    - Chat history persistence
+    - User feedback collection
+    - Admin content embedding endpoints
+
+    **Technology Stack:**
+    - FastAPI (Python 3.11+)
+    - OpenAI (text-embedding-3-small, GPT-4-turbo)
+    - Qdrant Cloud (vector database)
+    - Neon Serverless Postgres (chat history)
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: Query
+    description: Question-answering endpoints
+  - name: Embed
+    description: Content embedding endpoints (admin only)
+  - name: Feedback
+    description: User feedback collection
+  - name: Health
+    description: System health checks
+
+security:
+  - BearerAuth: []
+
+paths:
+  /api/query:
+    post:
+      tags:
+        - Query
+      summary: Ask a question about book content
+      description: |
+        Submit a question to the RAG chatbot. The system:
+        1. Embeds the query using OpenAI
+        2. Retrieves relevant book chunks from Qdrant
+        3. Generates an answer with GPT-4
+        4. Returns answer with source citations
+
+        **Performance:** <3s p95 latency
+      operationId: queryBook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+            examples:
+              basic_query:
+                summary: Basic question
+                value:
+                  query: "What is ROS 2?"
+                  session_id: "123e4567-e89b-12d3-a456-426614174000"
+              chapter_scoped:
+                summary: Chapter-scoped query
+                value:
+                  query: "How does Gazebo simulation work?"
+                  chapter_scope: "chapter-2"
+                  session_id: "123e4567-e89b-12d3-a456-426614174000"
+              selected_text:
+                summary: Selected text query
+                value:
+                  query: "Explain this code snippet"
+                  selected_text: "rclpy.init(args=args)\nnode = MinimalPublisher()\nrclpy.spin(node)"
+                  session_id: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successful query response
+          headers:
+            X-Request-ID:
+              schema:
+                type: string
+                format: uuid
+              description: Request trace ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+              examples:
+                successful_answer:
+                  summary: Answer with citations
+                  value:
+                    answer: "ROS 2 (Robot Operating System 2) is an open-source framework for robot software development that provides tools, libraries, and conventions to simplify creating complex robot behavior [1][2]."
+                    sources:
+                      - chunk_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                        chapter_id: "chapter-1"
+                        section_id: "what-is-ros2"
+                        heading: "What is ROS 2?"
+                        similarity_score: 0.89
+                      - chunk_id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                        chapter_id: "chapter-1"
+                        section_id: "why-ros2"
+                        heading: "Why ROS 2?"
+                        similarity_score: 0.82
+                    confidence_score: 0.85
+                    request_id: "req_a1b2c3d4e5f6"
+                    generation_time_ms: 1842
+                not_found:
+                  summary: Question not covered in book
+                  value:
+                    answer: "I couldn't find that information in the book. Could you try rephrasing your question or asking about a different topic?"
+                    sources: []
+                    confidence_score: 0.0
+                    request_id: "req_b2c3d4e5f6a7"
+                    generation_time_ms: 512
+        '400':
+          description: Invalid request (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Validation Error"
+                message: "Query text is required and cannot be empty"
+                request_id: "req_c3d4e5f6a7b8"
+        '422':
+          description: Unprocessable entity (invalid parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          headers:
+            X-RateLimit-Limit:
+              schema:
+                type: integer
+              description: Requests per minute allowed
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+              description: Requests remaining in current window
+            X-RateLimit-Reset:
+              schema:
+                type: integer
+              description: Seconds until rate limit resets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Rate Limit Exceeded"
+                message: "You have exceeded the rate limit of 100 requests per minute. Please try again in 45 seconds."
+                request_id: "req_d4e5f6a7b8c9"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service unavailable (OpenAI/Qdrant down)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Service Unavailable"
+                message: "The embedding service is temporarily unavailable. Please try again in a few moments."
+                request_id: "req_e5f6a7b8c9d0"
+
+  /api/query/stream:
+    post:
+      tags:
+        - Query
+      summary: Ask a question with streaming response
+      description: |
+        Same as /api/query but returns Server-Sent Events (SSE) stream for progressive answer display.
+
+        **Stream Format:**
+        ```
+        data: {"type": "start", "request_id": "req_123"}
+        data: {"type": "chunk", "content": "ROS 2 is "}
+        data: {"type": "chunk", "content": "an open-source"}
+        data: {"type": "sources", "sources": [...]}
+        data: {"type": "end"}
+        ```
+      operationId: queryBookStream
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                format: binary
+
+  /api/embed:
+    post:
+      tags:
+        - Embed
+      summary: Generate embeddings for book content (admin only)
+      description: |
+        Admin endpoint to embed book content into Qdrant vector database.
+        Processes multiple chunks in batch for efficiency.
+
+        **Security:** Requires admin API key in Authorization header.
+      operationId: embedContent
+      security:
+        - AdminAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbedRequest'
+            example:
+              chunks:
+                - chapter_id: "chapter-1"
+                  section_id: "what-is-ros2"
+                  chunk_text: "ROS 2 (Robot Operating System 2) is an open-source framework..."
+                  heading: "What is ROS 2?"
+                  page: 5
+                  chunk_index: 0
+                - chapter_id: "chapter-1"
+                  section_id: "what-is-ros2"
+                  chunk_text: "Unlike its predecessor, ROS 2 introduces significant improvements..."
+                  heading: "What is ROS 2?"
+                  page: 5
+                  chunk_index: 1
+      responses:
+        '200':
+          description: Embeddings generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbedResponse'
+              example:
+                success: true
+                chunks_processed: 2
+                chunks_embedded: 2
+                chunks_failed: 0
+                request_id: "req_f6a7b8c9d0e1"
+                processing_time_ms: 3421
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (invalid admin API key)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/feedback:
+    post:
+      tags:
+        - Feedback
+      summary: Submit feedback on chatbot response
+      description: |
+        Users can rate chatbot responses (thumbs up/down) and optionally provide text feedback.
+        Feedback is stored for quality monitoring and improvement.
+      operationId: submitFeedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackRequest'
+            examples:
+              thumbs_up:
+                summary: Positive feedback
+                value:
+                  message_id: "msg_123e4567-e89b-12d3-a456-426614174000"
+                  rating: "thumbs_up"
+              thumbs_down_with_text:
+                summary: Negative feedback with explanation
+                value:
+                  message_id: "msg_223e4567-e89b-12d3-a456-426614174001"
+                  rating: "thumbs_down"
+                  feedback_text: "The answer didn't address my specific question about error handling."
+      responses:
+        '200':
+          description: Feedback submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+              example:
+                success: true
+                feedback_id: "fb_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                request_id: "req_a7b8c9d0e1f2"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: |
+        Returns health status of the API and dependent services (OpenAI, Qdrant, Neon).
+        Useful for monitoring and load balancer health checks.
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                all_healthy:
+                  summary: All services operational
+                  value:
+                    status: "healthy"
+                    version: "1.0.0"
+                    timestamp: "2025-12-10T10:30:00Z"
+                    services:
+                      openai: "healthy"
+                      qdrant: "healthy"
+                      neon: "healthy"
+                degraded:
+                  summary: Degraded state
+                  value:
+                    status: "degraded"
+                    version: "1.0.0"
+                    timestamp: "2025-12-10T10:35:00Z"
+                    services:
+                      openai: "healthy"
+                      qdrant: "unhealthy"
+                      neon: "healthy"
+        '503':
+          description: Service unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "unhealthy"
+                version: "1.0.0"
+                timestamp: "2025-12-10T10:40:00Z"
+                services:
+                  openai: "unhealthy"
+                  qdrant: "unhealthy"
+                  neon: "healthy"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from better-auth.com authentication
+    AdminAuth:
+      type: apiKey
+      in: header
+      name: X-Admin-API-Key
+      description: Admin API key for content embedding endpoints
+
+  schemas:
+    QueryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: User's question about the book
+          example: "What is ROS 2?"
+        session_id:
+          type: string
+          format: uuid
+          description: Chat session ID (creates new session if not provided)
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        selected_text:
+          type: string
+          maxLength: 5000
+          description: Optional selected text for focused queries
+          example: "rclpy.init(args=args)"
+        chapter_scope:
+          type: string
+          pattern: '^chapter-\d+$'
+          description: Optional chapter filter (e.g., "chapter-1")
+          example: "chapter-1"
+
+    QueryResponse:
+      type: object
+      required:
+        - answer
+        - sources
+        - confidence_score
+        - request_id
+        - generation_time_ms
+      properties:
+        answer:
+          type: string
+          description: Generated answer with citations [1][2]
+          example: "ROS 2 is an open-source framework for robot software development [1]."
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+          description: Retrieved book chunks with citations
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Confidence score (0.0 = no relevant context, 1.0 = high confidence)
+          example: 0.85
+        request_id:
+          type: string
+          description: Request trace ID
+          example: "req_a1b2c3d4e5f6"
+        generation_time_ms:
+          type: integer
+          minimum: 0
+          description: Total query-to-answer time in milliseconds
+          example: 1842
+
+    Source:
+      type: object
+      required:
+        - chunk_id
+        - chapter_id
+        - section_id
+        - heading
+        - similarity_score
+      properties:
+        chunk_id:
+          type: string
+          format: uuid
+          description: Unique chunk identifier
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        chapter_id:
+          type: string
+          description: Chapter identifier
+          example: "chapter-1"
+        section_id:
+          type: string
+          description: Section identifier
+          example: "what-is-ros2"
+        heading:
+          type: string
+          description: Section heading for citation
+          example: "What is ROS 2?"
+        similarity_score:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Cosine similarity score
+          example: 0.89
+        page:
+          type: integer
+          minimum: 1
+          description: Optional page number
+          example: 5
+
+    EmbedRequest:
+      type: object
+      required:
+        - chunks
+      properties:
+        chunks:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/ChunkInput'
+          description: Book chunks to embed
+
+    ChunkInput:
+      type: object
+      required:
+        - chapter_id
+        - section_id
+        - chunk_text
+        - heading
+        - chunk_index
+      properties:
+        chapter_id:
+          type: string
+          pattern: '^chapter-\d+$'
+          example: "chapter-1"
+        section_id:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+          example: "what-is-ros2"
+        chunk_text:
+          type: string
+          minLength: 100
+          maxLength: 3000
+          description: Chunk content (400-600 tokens recommended)
+          example: "ROS 2 (Robot Operating System 2) is an open-source framework..."
+        heading:
+          type: string
+          example: "What is ROS 2?"
+        page:
+          type: integer
+          minimum: 1
+          example: 5
+        chunk_index:
+          type: integer
+          minimum: 0
+          description: Sequential index within section
+          example: 0
+
+    EmbedResponse:
+      type: object
+      required:
+        - success
+        - chunks_processed
+        - chunks_embedded
+        - chunks_failed
+        - request_id
+        - processing_time_ms
+      properties:
+        success:
+          type: boolean
+          example: true
+        chunks_processed:
+          type: integer
+          minimum: 0
+          example: 100
+        chunks_embedded:
+          type: integer
+          minimum: 0
+          example: 98
+        chunks_failed:
+          type: integer
+          minimum: 0
+          example: 2
+        failed_chunks:
+          type: array
+          items:
+            type: object
+            properties:
+              chunk_index:
+                type: integer
+              error:
+                type: string
+        request_id:
+          type: string
+          example: "req_f6a7b8c9d0e1"
+        processing_time_ms:
+          type: integer
+          minimum: 0
+          example: 3421
+
+    FeedbackRequest:
+      type: object
+      required:
+        - message_id
+        - rating
+      properties:
+        message_id:
+          type: string
+          format: uuid
+          description: ID of the assistant message being rated
+          example: "msg_123e4567-e89b-12d3-a456-426614174000"
+        rating:
+          type: string
+          enum: [thumbs_up, thumbs_down]
+          description: User rating
+          example: "thumbs_up"
+        feedback_text:
+          type: string
+          maxLength: 1000
+          description: Optional detailed feedback
+          example: "Great answer, very helpful!"
+
+    FeedbackResponse:
+      type: object
+      required:
+        - success
+        - feedback_id
+        - request_id
+      properties:
+        success:
+          type: boolean
+          example: true
+        feedback_id:
+          type: string
+          format: uuid
+          description: Created feedback ID
+          example: "fb_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        request_id:
+          type: string
+          example: "req_a7b8c9d0e1f2"
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - version
+        - timestamp
+        - services
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall system status
+          example: "healthy"
+        version:
+          type: string
+          description: API version
+          example: "1.0.0"
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp
+          example: "2025-12-10T10:30:00Z"
+        services:
+          type: object
+          required:
+            - openai
+            - qdrant
+            - neon
+          properties:
+            openai:
+              type: string
+              enum: [healthy, unhealthy]
+              example: "healthy"
+            qdrant:
+              type: string
+              enum: [healthy, unhealthy]
+              example: "healthy"
+            neon:
+              type: string
+              enum: [healthy, unhealthy]
+              example: "healthy"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - request_id
+      properties:
+        error:
+          type: string
+          description: Error type/code
+          example: "Validation Error"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Query text is required and cannot be empty"
+        request_id:
+          type: string
+          description: Request trace ID
+          example: "req_c3d4e5f6a7b8"
+        details:
+          type: object
+          description: Additional error context (optional)

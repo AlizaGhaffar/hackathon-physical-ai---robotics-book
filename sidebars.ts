@@ -138,6 +138,7 @@ const sidebars: SidebarsConfig = {
         },
       ],
     },
+    'chatbot',
   ],
 };
 

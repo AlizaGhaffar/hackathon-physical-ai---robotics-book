@@ -40,6 +40,11 @@ const config: Config = {
     locales: ['en'], // Only English for now (Urdu support requires i18n folder structure)
   },
 
+  // Custom fields for environment-specific configuration
+  customFields: {
+    apiUrl: process.env.REACT_APP_API_URL || 'http://localhost:8000',
+  },
+
   presets: [
     [
       'classic',
